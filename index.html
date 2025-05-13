@@ -1,14 +1,36 @@
-<html><head><base href="trackify://object-detection-studio/custom-tracker?media=image,video,url&models=roboflow,huggingface">
+<html class=""><head><base href="trackify://object-detection-studio/custom-tracker?media=image,video,url&amp;models=roboflow,huggingface">
 
 <title>Advanced Object Tracking Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+  @font-face {
+    font-family: 'SF Pro Display';
+    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-regular-webfont.woff');
+  }
+
   :root {
     --primary-color: #0071e3;
     --secondary-color: #1d1d1f;
     --background-color: #fbfbfd;
     --text-color: #1d1d1f;
+    --border-color: #d2d2d7;
+    --input-background: #ffffff;
+    --header-background: rgba(255, 255, 255, 0.8);
+    --main-display-background: #ffffff;
+    --main-display-shadow: rgba(0, 0, 0, 0.1);
     --border-radius: 12px;
+  }
+
+  :root.dark-mode {
+    --primary-color: #2997ff;
+    --secondary-color: #f5f5f7;
+    --background-color: #000000;
+    --text-color: #f5f5f7;
+    --border-color: #424245;
+    --input-background: #1c1c1e;
+    --header-background: rgba(0, 0, 0, 0.8);
+    --main-display-background: #1c1c1e;
+    --main-display-shadow: rgba(255, 255, 255, 0.1);
   }
 
   body {
@@ -29,21 +51,23 @@
   }
 
   header {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: var(--header-background);
     backdrop-filter: saturate(180%) blur(20px);
     position: sticky;
     top: 0;
     z-index: 100;
     padding: 20px 0;
     text-align: center;
-    border-bottom: 1px solid #d2d2d7;
+    border-bottom: 1px solid var(--border-color);
   }
 
   h1 {
     margin: 0;
-    font-size: 40px;
-    font-weight: 600;
-    letter-spacing: -0.009em;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    line-height: 1.08349;
   }
 
   .input-area {
@@ -73,9 +97,11 @@
     flex-grow: 1;
     margin-right: 10px;
     padding: 12px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 17px;
+    background-color: var(--input-background);
+    color: var(--text-color);
     transition: all 0.3s ease;
   }
 
@@ -87,23 +113,34 @@
 
   #main-display {
     margin-top: 40px;
-    background-color: white;
+    background-color: var(--main-display-background);
     border-radius: var(--border-radius);
     padding: 20px;
     position: relative;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--main-display-shadow);
   }
 
   #media-container {
     position: relative;
     width: 100%;
     height: 500px;
-    background-color: #f5f5f7;
+    background-color: var(--input-background);
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     border-radius: var(--border-radius);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #media-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .rounded-corners {
+    border-radius: 20px;
+    overflow: hidden;
   }
 
   #tracking-canvas {
@@ -137,10 +174,11 @@
   select, input[type="range"] {
     width: 200px;
     padding: 8px;
-    border: 1px solid #d2d2d7;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 17px;
-    background-color: white;
+    background-color: var(--input-background);
+    color: var(--text-color);
     transition: all 0.3s ease;
   }
 
@@ -177,11 +215,18 @@
   .fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
+
+  #dark-mode-toggle {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+  }
 </style>
 </head>
 <body>
   <header>
     <h1>Advanced Object Tracking Studio</h1>
+    <button id="dark-mode-toggle" class="btn">Toggle Dark Mode</button>
   </header>
   
   <div class="container">
@@ -248,6 +293,7 @@
     <div class="controls">
       <button class="btn" onclick="saveTrackedMedia()">Save Tracked Media</button>
       <button class="btn" onclick="exportData()">Export Data</button>
+      <button class="btn" id="toggle-rounded-corners">Toggle Rounded Corners</button>
     </div>
   </div>
 
@@ -270,7 +316,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('file-input').addEventListener('change', handleFileUpload);
   document.getElementById('url-input').addEventListener('change', handleUrlInput);
   document.getElementById('track-btn').addEventListener('click', startTracking);
+
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  darkModeToggle.addEventListener('click', toggleDarkMode);
+
+  const toggleRoundedCornersBtn = document.getElementById('toggle-rounded-corners');
+  toggleRoundedCornersBtn.addEventListener('click', toggleRoundedCorners);
+
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark-mode');
+  }
 });
+
+function toggleDarkMode() {
+  document.documentElement.classList.toggle('dark-mode');
+}
+
+function toggleRoundedCorners() {
+  const mediaContainer = document.getElementById('media-container');
+  mediaContainer.classList.toggle('rounded-corners');
+  if (mediaElement) {
+    mediaElement.classList.toggle('rounded-corners');
+  }
+}
 
 function handleFileUpload(event) {
   const file = event.target.files[0];
@@ -321,6 +389,10 @@ function displayMedia(src, type) {
   mediaElement.style.maxHeight = '100%';
   container.appendChild(mediaElement);
   
+  if (container.classList.contains('rounded-corners')) {
+    mediaElement.classList.add('rounded-corners');
+  }
+
   mediaElement.onload = mediaElement.onloadedmetadata = function() {
     resizeCanvas();
   };
@@ -431,9 +503,9 @@ function drawPredictions(predictions) {
     const label = prediction.class;
     const customLabel = customLabels.find(cl => cl.name.toLowerCase() === label.toLowerCase());
     
-    trackingContext.strokeStyle = customLabel ? customLabel.color : '#00FFFF';
+    trackingContext.strokeStyle = customLabel ? customLabel.color : (document.documentElement.classList.contains('dark-mode') ? '#2997ff' : '#00FFFF');
     trackingContext.lineWidth = parseInt(lineThickness);
-    trackingContext.fillStyle = customLabel ? customLabel.color : '#00FFFF';
+    trackingContext.fillStyle = customLabel ? customLabel.color : (document.documentElement.classList.contains('dark-mode') ? '#2997ff' : '#00FFFF');
 
     switch(visualizationStyle) {
       case 'rectangle':

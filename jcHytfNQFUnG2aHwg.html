@@ -1,0 +1,611 @@
+<html><head><base href="trackify://object-detection-studio/custom-tracker?media=image,video,url&models=roboflow,huggingface">
+
+<title>Advanced Object Tracking Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --primary-color: #0071e3;
+    --secondary-color: #1d1d1f;
+    --background-color: #fbfbfd;
+    --text-color: #1d1d1f;
+    --border-radius: 12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.47059;
+    font-weight: 400;
+    letter-spacing: -0.022em;
+  }
+
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  header {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 20px 0;
+    text-align: center;
+    border-bottom: 1px solid #d2d2d7;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: -0.009em;
+  }
+
+  .input-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+  }
+
+  .btn {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 17px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn:hover {
+    background-color: #0077ED;
+  }
+
+  #url-input {
+    flex-grow: 1;
+    margin-right: 10px;
+    padding: 12px;
+    border: 1px solid #d2d2d7;
+    border-radius: var(--border-radius);
+    font-size: 17px;
+    transition: all 0.3s ease;
+  }
+
+  #url-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 125, 250, 0.6);
+  }
+
+  #main-display {
+    margin-top: 40px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  #media-container {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background-color: #f5f5f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+  }
+
+  #tracking-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+
+  label {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #86868b;
+  }
+
+  select, input[type="range"] {
+    width: 200px;
+    padding: 8px;
+    border: 1px solid #d2d2d7;
+    border-radius: var(--border-radius);
+    font-size: 17px;
+    background-color: white;
+    transition: all 0.3s ease;
+  }
+
+  select:focus, input[type="range"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 125, 250, 0.6);
+  }
+
+  #custom-labels {
+    margin-top: 40px;
+  }
+
+  .label-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .color-picker {
+    margin-right: 10px;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Advanced Object Tracking Studio</h1>
+  </header>
+  
+  <div class="container">
+    <div class="input-area fade-in">
+      <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
+      <button class="btn" onclick="document.getElementById('file-input').click()">Import Media</button>
+      <input type="text" id="url-input" placeholder="Enter media URL">
+      <button class="btn" id="track-btn">Track</button>
+    </div>
+    
+    <div id="main-display">
+      <div id="media-container"></div>
+      <canvas id="tracking-canvas"></canvas>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="model-select">Tracking Model:</label>
+        <select id="model-select">
+          <option value="roboflow">Roboflow</option>
+          <option value="huggingface">Hugging Face</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label for="visualization-select">Visualization Style:</label>
+        <select id="visualization-select">
+          <option value="rectangle">Rectangle Outlines</option>
+          <option value="filled">Filled Rectangles</option>
+          <option value="single-point">Single-Point Trackers</option>
+          <option value="multi-point">Multi-Point Trackers</option>
+          <option value="outline">Object Outlines</option>
+          <option value="skeleton">Skeletal Meshes</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="line-thickness">Line Thickness:</label>
+        <input type="range" id="line-thickness" min="1" max="10" value="2">
+      </div>
+
+      <div class="control-group">
+        <label for="text-size">Text Size:</label>
+        <input type="range" id="text-size" min="10" max="30" value="16">
+      </div>
+
+      <div class="control-group">
+        <label for="text-box-color">Text Box Color:</label>
+        <input type="color" id="text-box-color" value="#FFFFFF">
+      </div>
+      
+      <div class="control-group">
+        <label for="sensitivity">Tracking Sensitivity:</label>
+        <input type="range" id="sensitivity" min="0" max="100" value="50">
+      </div>
+    </div>
+    
+    <div id="custom-labels">
+      <h3>Custom Labels</h3>
+      <div id="label-list"></div>
+      <button class="btn" onclick="addCustomLabel()">Add Label</button>
+    </div>
+    
+    <div class="controls">
+      <button class="btn" onclick="saveTrackedMedia()">Save Tracked Media</button>
+      <button class="btn" onclick="exportData()">Export Data</button>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+<script>
+let model;
+let mediaElement;
+let trackingCanvas;
+let trackingContext;
+let customLabels = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  model = await cocoSsd.load();
+  console.log('Model loaded');
+
+  trackingCanvas = document.getElementById('tracking-canvas');
+  trackingContext = trackingCanvas.getContext('2d');
+
+  document.getElementById('file-input').addEventListener('change', handleFileUpload);
+  document.getElementById('url-input').addEventListener('change', handleUrlInput);
+  document.getElementById('track-btn').addEventListener('click', startTracking);
+});
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      displayMedia(e.target.result, file.type);
+    }
+    reader.readAsDataURL(file);
+  }
+}
+
+function handleUrlInput(event) {
+  const url = event.target.value;
+  if (url) {
+    displayMedia(url, getMediaTypeFromUrl(url));
+  }
+}
+
+function getMediaTypeFromUrl(url) {
+  if (url.match(/\.(jpeg|jpg|gif|png)$/i) != null) {
+    return 'image';
+  } else if (url.match(/\.(mp4|webm|ogg)$/i) != null) {
+    return 'video';
+  } else {
+    return 'unknown';
+  }
+}
+
+function displayMedia(src, type) {
+  const container = document.getElementById('media-container');
+  container.innerHTML = '';
+  
+  if (type.startsWith('image')) {
+    mediaElement = new Image();
+  } else if (type.startsWith('video')) {
+    mediaElement = document.createElement('video');
+    mediaElement.controls = true;
+    mediaElement.autoplay = false;
+  } else {
+    console.error('Unsupported media type');
+    return;
+  }
+  
+  mediaElement.crossOrigin = "anonymous";
+  mediaElement.src = src;
+  mediaElement.style.maxWidth = '100%';
+  mediaElement.style.maxHeight = '100%';
+  container.appendChild(mediaElement);
+  
+  mediaElement.onload = mediaElement.onloadedmetadata = function() {
+    resizeCanvas();
+  };
+
+  if (type.startsWith('video')) {
+    mediaElement.addEventListener('play', startVideoTracking);
+    mediaElement.addEventListener('pause', stopVideoTracking);
+  }
+
+  setTimeout(resizeCanvas, 100);
+}
+
+let isVideoTracking = false;
+let videoTrackingInterval;
+
+function startVideoTracking() {
+  if (!isVideoTracking) {
+    isVideoTracking = true;
+    videoTrackingInterval = setInterval(trackVideoFrame, 1000 / 30); 
+  }
+}
+
+function stopVideoTracking() {
+  if (isVideoTracking) {
+    isVideoTracking = false;
+    clearInterval(videoTrackingInterval);
+  }
+}
+
+async function trackVideoFrame() {
+  if (mediaElement.paused || mediaElement.ended) {
+    stopVideoTracking();
+    return;
+  }
+  const predictions = await model.detect(mediaElement);
+  drawPredictions(predictions);
+}
+
+async function startTracking() {
+  if (!mediaElement) {
+    alert('Please import media first');
+    return;
+  }
+
+  if (mediaElement instanceof HTMLVideoElement) {
+    if (mediaElement.paused) {
+      mediaElement.play();
+    } else {
+      mediaElement.pause();
+    }
+  } else {
+    const predictions = await model.detect(mediaElement);
+    drawPredictions(predictions);
+  }
+}
+
+function resizeCanvas() {
+  const containerWidth = mediaElement.offsetWidth;
+  const containerHeight = mediaElement.offsetHeight;
+  const mediaAspectRatio = mediaElement.videoWidth ? mediaElement.videoWidth / mediaElement.videoHeight : mediaElement.width / mediaElement.height;
+  const containerAspectRatio = containerWidth / containerHeight;
+
+  let canvasWidth, canvasHeight;
+
+  if (mediaAspectRatio > containerAspectRatio) {
+    canvasWidth = containerWidth;
+    canvasHeight = containerWidth / mediaAspectRatio;
+  } else {
+    canvasHeight = containerHeight;
+    canvasWidth = containerHeight * mediaAspectRatio;
+  }
+
+  trackingCanvas.width = canvasWidth;
+  trackingCanvas.height = canvasHeight;
+  trackingCanvas.style.width = `${canvasWidth}px`;
+  trackingCanvas.style.height = `${canvasHeight}px`;
+}
+
+function drawPredictions(predictions) {
+  trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
+  
+  const visualizationStyle = document.getElementById('visualization-select').value;
+  const lineThickness = document.getElementById('line-thickness').value;
+  const textSize = document.getElementById('text-size').value;
+  const textBoxColor = document.getElementById('text-box-color').value;
+  
+  const isImage = mediaElement instanceof HTMLImageElement;
+  const widthReductionFactor = isImage ? 0.7 : 1; // Reduce width by 30% for images
+  
+  const scaleX = trackingCanvas.width / (mediaElement.videoWidth || mediaElement.width);
+  const scaleY = trackingCanvas.height / (mediaElement.videoHeight || mediaElement.height);
+  
+  predictions.forEach(prediction => {
+    let [x, y, width, height] = prediction.bbox;
+    
+    // Scale the bounding box coordinates
+    x *= scaleX;
+    y *= scaleY;
+    width *= scaleX;
+    height *= scaleY;
+    
+    if (isImage) {
+      const centerX = x + width / 2;
+      width *= widthReductionFactor;
+      x = centerX - width / 2;
+    }
+    
+    const label = prediction.class;
+    const customLabel = customLabels.find(cl => cl.name.toLowerCase() === label.toLowerCase());
+    
+    trackingContext.strokeStyle = customLabel ? customLabel.color : '#00FFFF';
+    trackingContext.lineWidth = parseInt(lineThickness);
+    trackingContext.fillStyle = customLabel ? customLabel.color : '#00FFFF';
+
+    switch(visualizationStyle) {
+      case 'rectangle':
+        trackingContext.strokeRect(x, y, width, height);
+        break;
+      case 'filled':
+        trackingContext.globalAlpha = 0.3;
+        trackingContext.fillRect(x, y, width, height);
+        trackingContext.globalAlpha = 1.0;
+        break;
+      case 'single-point':
+        trackingContext.beginPath();
+        trackingContext.arc(x + width / 2, y + height / 2, 5, 0, 2 * Math.PI);
+        trackingContext.fill();
+        break;
+      case 'multi-point':
+        drawMultiPointTracker(x, y, width, height);
+        break;
+      case 'outline':
+        drawObjectOutline(x, y, width, height);
+        break;
+      case 'skeleton':
+        drawSkeletalMesh(x, y, width, height, label);
+        break;
+    }
+    
+    trackingContext.font = `${textSize}px Arial`;
+    trackingContext.fillStyle = textBoxColor;
+    const textWidth = trackingContext.measureText(label).width;
+    trackingContext.fillRect(x, y - parseInt(textSize) - 4, textWidth + 10, parseInt(textSize) + 8);
+    trackingContext.fillStyle = 'black';
+    trackingContext.fillText(label, x + 5, y - 5);
+  });
+}
+
+function drawMultiPointTracker(x, y, width, height) {
+  const points = [
+    [x, y],
+    [x + width, y],
+    [x + width, y + height],
+    [x, y + height],
+    [x + width / 2, y + height / 2]
+  ];
+  
+  points.forEach(point => {
+    trackingContext.beginPath();
+    trackingContext.arc(point[0], point[1], 3, 0, 2 * Math.PI);
+    trackingContext.fill();
+  });
+}
+
+function drawObjectOutline(x, y, width, height) {
+  trackingContext.beginPath();
+  trackingContext.moveTo(x, y);
+  trackingContext.lineTo(x + width, y);
+  trackingContext.lineTo(x + width, y + height);
+  trackingContext.lineTo(x, y + height);
+  trackingContext.closePath();
+  trackingContext.stroke();
+}
+
+function drawSkeletalMesh(x, y, width, height, label) {
+  if (label.toLowerCase().includes('person')) {
+    const headSize = height * 0.15;
+    const bodyHeight = height * 0.5;
+    const shoulderWidth = width * 0.8;
+    const hipWidth = width * 0.7;
+    const centerX = x + width / 2;
+    
+    // Head
+    trackingContext.beginPath();
+    trackingContext.arc(centerX, y + headSize, headSize, 0, 2 * Math.PI);
+    trackingContext.stroke();
+    
+    // Spine
+    trackingContext.beginPath();
+    trackingContext.moveTo(centerX, y + headSize * 2);
+    trackingContext.lineTo(centerX, y + headSize * 2 + bodyHeight);
+    trackingContext.stroke();
+    
+    // Shoulders
+    trackingContext.beginPath();
+    trackingContext.moveTo(centerX - shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
+    trackingContext.lineTo(centerX + shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
+    trackingContext.stroke();
+    
+    // Arms
+    trackingContext.beginPath();
+    trackingContext.moveTo(centerX - shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
+    trackingContext.lineTo(x, y + headSize * 2 + bodyHeight * 0.6);
+    trackingContext.moveTo(centerX + shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
+    trackingContext.lineTo(x + width, y + headSize * 2 + bodyHeight * 0.6);
+    trackingContext.stroke();
+    
+    // Hips
+    trackingContext.beginPath();
+    trackingContext.moveTo(centerX - hipWidth / 2, y + headSize * 2 + bodyHeight);
+    trackingContext.lineTo(centerX + hipWidth / 2, y + headSize * 2 + bodyHeight);
+    trackingContext.stroke();
+    
+    // Legs
+    trackingContext.beginPath();
+    trackingContext.moveTo(centerX - hipWidth / 2, y + headSize * 2 + bodyHeight);
+    trackingContext.lineTo(x + width * 0.2, y + height);
+    trackingContext.moveTo(centerX + hipWidth / 2, y + headSize * 2 + bodyHeight);
+    trackingContext.lineTo(x + width * 0.8, y + height);
+    trackingContext.stroke();
+  } else {
+    // For non-human objects, keep the existing X shape
+    trackingContext.beginPath();
+    trackingContext.moveTo(x, y);
+    trackingContext.lineTo(x + width, y + height);
+    trackingContext.moveTo(x + width, y);
+    trackingContext.lineTo(x, y + height);
+    trackingContext.stroke();
+  }
+}
+
+function addCustomLabel() {
+  const labelName = prompt('Enter label name:');
+  if (labelName) {
+    const color = '#' + Math.floor(Math.random() * 16777215).toString(16);
+    customLabels.push({ name: labelName, color: color });
+    updateLabelList();
+  }
+}
+
+function updateLabelList() {
+  const labelList = document.getElementById('label-list');
+  labelList.innerHTML = '';
+  customLabels.forEach((label, index) => {
+    const labelItem = document.createElement('div');
+    labelItem.className = 'label-item';
+    labelItem.innerHTML = `
+      <input type="color" class="color-picker" value="${label.color}" onchange="updateLabelColor(${index}, this.value)">
+      <span>${label.name}</span>
+      <button onclick="removeLabel(${index})">Remove</button>
+    `;
+    labelList.appendChild(labelItem);
+  });
+}
+
+function updateLabelColor(index, color) {
+  customLabels[index].color = color;
+}
+
+function removeLabel(index) {
+  customLabels.splice(index, 1);
+  updateLabelList();
+}
+
+function saveTrackedMedia() {
+  alert('Tracked media saved (simulated)');
+}
+
+function exportData() {
+  alert('Tracking data exported (simulated)');
+}
+
+document.getElementById('model-select').addEventListener('change', async (event) => {
+  const selectedModel = event.target.value;
+  if (selectedModel === 'roboflow') {
+    console.log('Loading Roboflow model...');
+  } else if (selectedModel === 'huggingface') {
+    console.log('Loading Hugging Face model...');
+  }
+});
+
+document.getElementById('sensitivity').addEventListener('input', (event) => {
+  const sensitivity = event.target.value;
+  console.log('Sensitivity changed:', sensitivity);
+});
+</script>
+
+</body></html>

@@ -17,12 +17,14 @@
     --button-text-color: white;
     --label-text-color: #86868b;
     --box-shadow-color: rgba(0, 0, 0, 0.1);
+    --progress-bar-background: #e9ecef;
+    --progress-bar-color: var(--primary-color);
     --border-radius: 12px;
   }
 
   body.dark-mode {
-    --primary-color: #0a84ff; /* Brighter blue for dark mode */
-    --secondary-color: #f5f5f7; /* Light text on dark bg */
+    --primary-color: #0a84ff;
+    --secondary-color: #f5f5f7;
     --background-color: #121212;
     --text-color: #e0e0e0;
     --border-color: #424242;
@@ -34,6 +36,8 @@
     --button-text-color: white;
     --label-text-color: #a0a0a5;
     --box-shadow-color: rgba(0, 0, 0, 0.3);
+    --progress-bar-background: #3a3a3c;
+    --progress-bar-color: var(--primary-color);
   }
 
   body {
@@ -100,7 +104,6 @@
     opacity: 0.8;
   }
 
-
   .input-area {
     display: flex;
     justify-content: space-between;
@@ -128,7 +131,6 @@
     cursor: not-allowed;
     opacity: 0.7;
   }
-
 
   #url-input {
     flex-grow: 1;
@@ -160,12 +162,30 @@
 
   #loading-indicator {
     text-align: center;
-    font-size: 18px;
-    padding: 20px;
+    font-size: 16px; /* Slightly smaller text */
+    padding: 10px 0; /* Adjusted padding */
     color: var(--label-text-color);
     display: none; /* Initially hidden */
   }
 
+  #progress-bar-container {
+    width: 80%;
+    max-width: 400px;
+    background-color: var(--progress-bar-background);
+    border-radius: var(--border-radius);
+    margin: 10px auto; /* Center it */
+    overflow: hidden;
+    height: 10px; /* Progress bar height */
+    display: none; /* Initially hidden */
+  }
+
+  #progress-bar {
+    width: 0%;
+    height: 100%;
+    background-color: var(--progress-bar-color);
+    transition: width 0.2s ease-out;
+  }
+  
   .ellipsis span {
     opacity: 0;
     animation: ellipsis-fade 1.4s infinite;
@@ -179,10 +199,10 @@
     50% { opacity: 1; }
   }
 
-
   #media-container {
     position: relative;
     width: 100%;
+    min-height: 300px; /* Give it a min height before media loads */
     height: 500px;
     background-color: var(--media-container-background);
     display: flex;
@@ -192,6 +212,13 @@
     border-radius: var(--border-radius);
     transition: background-color 0.3s ease;
   }
+  /* Show loading indicator in media container if it's empty */
+  #media-container:empty::before {
+    content: "Import or load media to start tracking";
+    color: var(--label-text-color);
+    font-size: 16px;
+  }
+
 
   #tracking-canvas {
     position: absolute;
@@ -241,7 +268,6 @@
     border-radius: calc(var(--border-radius) / 2);
   }
 
-
   select:focus, input[type="range"]:focus, input[type="color"]:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -273,7 +299,6 @@
     background-color: #c0392b;
   }
 
-
   .color-picker {
     margin-right: 10px;
     border: none;
@@ -297,7 +322,6 @@
     border: 1px solid var(--border-color);
     border-radius: 50%;
   }
-
 
   @keyframes fadeIn {
     from { opacity: 0; }
@@ -324,7 +348,12 @@
     </div>
     
     <div id="main-display">
-      <div id="loading-indicator" style="display: none;">Model Loaded!</div>
+      <div id="loading-indicator" style="display: none;">
+          <span id="loading-text">Model Loaded!</span>
+          <div id="progress-bar-container" style="display: none;">
+              <div id="progress-bar" style="width: 100%;"></div>
+          </div>
+      </div>
       <div id="media-container">
          <!-- Media will be loaded here -->
       </div>
@@ -335,8 +364,12 @@
       <div class="control-group">
         <label for="model-select">Tracking Model:</label>
         <select id="model-select">
-          <option value="roboflow">Roboflow (COCO-SSD)</option>
-          <!-- <option value="huggingface">Hugging Face</option> -->
+          <option value="coco-ssd">COCO-SSD (General)</option>
+          <!-- Suggested models could be added here later if implemented -->
+          <!-- 
+          <option value="mediapipe-selfie">MediaPipe SelfieSeg (Person)</option> 
+          <option value="blazeface">BlazeFace (Faces)</option>
+          -->
         </select>
       </div>
       
@@ -387,6 +420,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+<!-- For other models, you might need their specific scripts, e.g.: -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-segmentation"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation"></script> -->
+
 <script>
 let model;
 let mediaElement;
@@ -398,6 +435,9 @@ let videoTrackingRequestID;
 
 const trackBtn = document.getElementById('track-btn');
 const loadingIndicator = document.getElementById('loading-indicator');
+const loadingText = document.getElementById('loading-text');
+const progressBarContainer = document.getElementById('progress-bar-container');
+const progressBar = document.getElementById('progress-bar');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 
 // Debounce function
@@ -424,8 +464,7 @@ function setOperatingSystemTheme() {
     } else {
         document.body.classList.remove('dark-mode');
     }
-    updateThemeButtonText(); // Update button text based on OS theme
-    // No explicit localStorage.setItem here, let user toggle to set preference
+    updateThemeButtonText();
 }
 
 function toggleTheme() {
@@ -435,8 +474,8 @@ function toggleTheme() {
   } else {
     localStorage.setItem('theme', 'light');
   }
-  updateThemeButtonText(); // Update button text after toggling
-  localStorage.setItem('themeOverriddenByUser', 'true'); // Mark that user has manually set theme
+  updateThemeButtonText();
+  localStorage.setItem('themeOverriddenByUser', 'true'); 
 }
 
 themeToggleBtn.addEventListener('click', toggleTheme);
@@ -446,15 +485,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const userHasOverridden = localStorage.getItem('themeOverriddenByUser') === 'true';
 
   if (savedTheme) {
-    if (savedTheme === 'dark') {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode'); // Ensure it's not dark if saved is light
-    }
+    if (savedTheme === 'dark') document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
     updateThemeButtonText();
-  } else if (!userHasOverridden) { // Only apply OS theme if user hasn't manually set one
+  } else if (!userHasOverridden) {
     setOperatingSystemTheme();
-  } else { // User has overridden but no specific theme saved (e.g. cleared storage), default to light
+  } else { 
     document.body.classList.remove('dark-mode');
     updateThemeButtonText();
   }
@@ -467,20 +503,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function initModel() {
     trackBtn.disabled = true;
-    loadingIndicator.innerHTML = 'Loading Model <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
     loadingIndicator.style.display = 'block';
+    loadingText.innerHTML = 'Loading Model <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
+    progressBarContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+
     console.log('Loading model...');
+    
+    // Simulate progress for cocoSsd.load()
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 5; // Increment progress
+        if (progress <= 95) { // Don't let simulated progress hit 100% prematurely
+            progressBar.style.width = progress + '%';
+        }
+    }, 150); // Adjust interval for speed of simulation
+
     try {
-      model = await cocoSsd.load();
-      console.log('Model loaded');
+      model = await cocoSsd.load(); // Current default model
+      clearInterval(progressInterval); // Stop simulation
+      progressBar.style.width = '100%'; // Mark as complete
+      console.log('Model loaded: COCO-SSD');
       trackBtn.disabled = false;
-      loadingIndicator.textContent = 'Model Loaded!'; // Indicate completion
-      setTimeout(() => { // Hide after a short delay
+      loadingText.textContent = 'Model Loaded!';
+      setTimeout(() => { 
           loadingIndicator.style.display = 'none';
-      }, 1000); 
+          progressBarContainer.style.display = 'none';
+      }, 1200); 
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Failed to load model:', error);
-      loadingIndicator.innerHTML = '<span style="color: red;">Error loading model. Please refresh.</span>';
+      loadingText.innerHTML = '<span style="color: red;">Error loading model. Please refresh.</span>';
+      progressBarContainer.style.display = 'none'; // Hide progress bar on error
     }
   }
   initModel();
@@ -501,7 +555,6 @@ function resizeCanvasIfMediaExists() {
   }
 }
 
-
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (file) {
@@ -521,20 +574,14 @@ function handleUrlInput(event) {
       displayMedia(url, getMediaTypeFromUrl(url));
     } catch (e) {
       console.warn('Invalid URL provided:', url);
-      // Optional: update UI to show "Invalid URL"
     }
   }
 }
 
 function getMediaTypeFromUrl(url) {
-  if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
-    return 'image';
-  } else if (url.match(/\.(mp4|webm|ogv|ogg)$/i) != null) {
-    return 'video';
-  } else {
-    console.warn('Could not determine media type from URL extension:', url);
-    return 'unknown';
-  }
+  if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) return 'image';
+  else if (url.match(/\.(mp4|webm|ogv|ogg)$/i) != null) return 'video';
+  else return 'unknown';
 }
 
 function displayMedia(src, type) {
@@ -570,9 +617,7 @@ function displayMedia(src, type) {
   const onMediaLoad = () => {
     if ((mediaElement.naturalWidth > 0 || mediaElement.videoWidth > 0)) {
        resizeCanvas();
-       if (mediaElement instanceof HTMLImageElement && model) {
-           startTracking(); 
-       }
+       if (mediaElement instanceof HTMLImageElement && model) startTracking(); 
     } else {
       setTimeout(onMediaLoad, 100); 
     }
@@ -636,14 +681,12 @@ async function startTracking() {
   }
 
   if (mediaElement instanceof HTMLVideoElement) {
-    if (mediaElement.paused) {
-      mediaElement.play().catch(e => console.error("Play error:", e)); 
-    }
+    if (mediaElement.paused) mediaElement.play().catch(e => console.error("Play error:", e)); 
   } else if (mediaElement instanceof HTMLImageElement) {
-    loadingIndicator.innerHTML = 'Processing Image <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
     loadingIndicator.style.display = 'block';
+    loadingText.innerHTML = 'Processing Image <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
+    progressBarContainer.style.display = 'none'; // Hide model progress for image processing
     try {
-        // Delay slightly to ensure UI update for loadingIndicator
         await new Promise(resolve => setTimeout(resolve, 50)); 
         const predictions = await model.detect(mediaElement);
         drawPredictions(predictions);
@@ -657,9 +700,7 @@ async function startTracking() {
 }
 
 function resizeCanvas() {
-  if (!mediaElement || !(mediaElement.offsetWidth && mediaElement.offsetHeight)) {
-    return;
-  }
+  if (!mediaElement || !(mediaElement.offsetWidth && mediaElement.offsetHeight)) return;
   
   trackingCanvas.width = mediaElement.offsetWidth;
   trackingCanvas.height = mediaElement.offsetHeight;
@@ -672,11 +713,8 @@ function resizeCanvas() {
   trackingCanvas.style.width = `${mediaElement.offsetWidth}px`;
   trackingCanvas.style.height = `${mediaElement.offsetHeight}px`;
 
-  if (trackingContext) {
-    trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
-  }
+  if (trackingContext) trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
 }
-
 
 function drawPredictions(predictions) {
   if (!trackingContext || !mediaElement) return;
@@ -707,15 +745,13 @@ function drawPredictions(predictions) {
     const label = prediction.class;
     const customLabel = customLabels.find(cl => cl.name.toLowerCase() === label.toLowerCase());
     
-    const BBOX_COLOR = customLabel ? customLabel.color : (document.body.classList.contains('dark-mode') ? '#00AFFFFF' : '#00FFFF'); 
+    const BBOX_COLOR = customLabel ? customLabel.color : (document.body.classList.contains('dark-mode') ? '#00AFFF' : '#00FFFF'); 
     trackingContext.strokeStyle = BBOX_COLOR;
     trackingContext.lineWidth = parseInt(lineThickness);
     trackingContext.fillStyle = BBOX_COLOR;
 
     switch(visualizationStyle) {
-      case 'rectangle':
-        trackingContext.strokeRect(x, y, width, height);
-        break;
+      case 'rectangle': trackingContext.strokeRect(x, y, width, height); break;
       case 'filled':
         trackingContext.globalAlpha = 0.3;
         trackingContext.fillRect(x, y, width, height);
@@ -726,15 +762,9 @@ function drawPredictions(predictions) {
         trackingContext.arc(x + width / 2, y + height / 2, 5, 0, 2 * Math.PI);
         trackingContext.fill();
         break;
-      case 'multi-point':
-        drawMultiPointTracker(x, y, width, height);
-        break;
-      case 'outline': 
-        drawObjectOutline(x, y, width, height);
-        break;
-      case 'skeleton':
-        drawSkeletalMesh(x, y, width, height, label);
-        break;
+      case 'multi-point': drawMultiPointTracker(x, y, width, height); break;
+      case 'outline': drawObjectOutline(x, y, width, height); break;
+      case 'skeleton': drawSkeletalMesh(x, y, width, height, label); break;
     }
     
     trackingContext.font = `${textSize}px Arial`;
@@ -791,7 +821,6 @@ function drawSkeletalMesh(x, y, width, height, label) {
     const headSize = Math.min(width, height) * 0.15;
     const bodyHeightRatio = 0.5;
     const shoulderWidthRatio = 0.8;
-    
     const centerX = x + width / 2;
     const topY = y;
 
@@ -847,17 +876,13 @@ function updateLabelList() {
 
 function updateLabelColor(index, color) {
   customLabels[index].color = color;
-  if (mediaElement instanceof HTMLImageElement && model) {
-    startTracking(); 
-  }
+  if (mediaElement instanceof HTMLImageElement && model) startTracking(); 
 }
 
 function removeLabel(index) {
   customLabels.splice(index, 1);
   updateLabelList();
-    if(mediaElement instanceof HTMLImageElement && model) {
-      startTracking(); 
-  }
+  if(mediaElement instanceof HTMLImageElement && model) startTracking(); 
 }
 
 function saveTrackedMedia() {
@@ -900,9 +925,14 @@ function exportData() {
   console.log('Tracking data exported (simulated).');
 }
 
+// Placeholder for model switching logic if you implement it
 document.getElementById('model-select').addEventListener('change', async (event) => {
-  const selectedModel = event.target.value;
-  console.log('Model selection changed to:', selectedModel);
+  const selectedModelKey = event.target.value;
+  console.log('Model selection changed to:', selectedModelKey);
+  // Here you would call a function to load the selected model, e.g.:
+  // await loadSelectedModel(selectedModelKey); 
+  // For now, it only changes the dropdown. COCO-SSD is loaded by default.
+  alert("Model switching is not fully implemented yet. Currently using COCO-SSD.");
 });
 
 document.getElementById('sensitivity').addEventListener('input', (event) => {
@@ -912,12 +942,9 @@ document.getElementById('sensitivity').addEventListener('input', (event) => {
 
 ['visualization-select', 'line-thickness', 'text-size', 'text-box-color'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
-        if (mediaElement instanceof HTMLImageElement && model) {
-            startTracking();
-        }
+        if (mediaElement instanceof HTMLImageElement && model) startTracking();
     });
 });
 
 </script>
-
 </body></html>

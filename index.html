@@ -1,36 +1,39 @@
-<html class=""><head><base href="trackify://object-detection-studio/custom-tracker?media=image,video,url&amp;models=roboflow,huggingface">
+<html><head><base href="trackify://object-detection-studio/custom-tracker?media=image,video,url&amp;models=roboflow,huggingface">
 
 <title>Advanced Object Tracking Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-regular-webfont.woff');
-  }
-
   :root {
     --primary-color: #0071e3;
     --secondary-color: #1d1d1f;
     --background-color: #fbfbfd;
     --text-color: #1d1d1f;
     --border-color: #d2d2d7;
-    --input-background: #ffffff;
+    --input-background: white;
+    --input-focus-shadow: rgba(0, 125, 250, 0.6);
     --header-background: rgba(255, 255, 255, 0.8);
-    --main-display-background: #ffffff;
-    --main-display-shadow: rgba(0, 0, 0, 0.1);
+    --main-display-background: white;
+    --media-container-background: #f5f5f7;
+    --button-text-color: white;
+    --label-text-color: #86868b;
+    --box-shadow-color: rgba(0, 0, 0, 0.1);
     --border-radius: 12px;
   }
 
-  :root.dark-mode {
-    --primary-color: #2997ff;
-    --secondary-color: #f5f5f7;
-    --background-color: #000000;
-    --text-color: #f5f5f7;
-    --border-color: #424245;
-    --input-background: #1c1c1e;
-    --header-background: rgba(0, 0, 0, 0.8);
+  body.dark-mode {
+    --primary-color: #0a84ff; /* Brighter blue for dark mode */
+    --secondary-color: #f5f5f7; /* Light text on dark bg */
+    --background-color: #121212;
+    --text-color: #e0e0e0;
+    --border-color: #424242;
+    --input-background: #2c2c2e;
+    --input-focus-shadow: rgba(10, 132, 255, 0.7);
+    --header-background: rgba(29, 29, 31, 0.8);
     --main-display-background: #1c1c1e;
-    --main-display-shadow: rgba(255, 255, 255, 0.1);
+    --media-container-background: #2c2c2e;
+    --button-text-color: white;
+    --label-text-color: #a0a0a5;
+    --box-shadow-color: rgba(0, 0, 0, 0.3);
   }
 
   body {
@@ -42,6 +45,7 @@
     line-height: 1.47059;
     font-weight: 400;
     letter-spacing: -0.022em;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .container {
@@ -56,19 +60,46 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 20px 0;
+    padding: 15px 0;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
   h1 {
     margin: 0;
-    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-    font-size: 56px;
-    font-weight: 700;
-    letter-spacing: -0.005em;
-    line-height: 1.08349;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.009em;
+    flex-grow: 1;
+    text-align: center;
   }
+
+  .theme-toggle-btn {
+    background-color: var(--secondary-color);
+    color: var(--background-color);
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  body.dark-mode .theme-toggle-btn {
+    background-color: var(--input-background);
+    color: var(--text-color);
+  }
+
+  .theme-toggle-btn:hover {
+    opacity: 0.8;
+  }
+
 
   .input-area {
     display: flex;
@@ -79,23 +110,29 @@
 
   .btn {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--button-text-color);
     padding: 12px 24px;
     border: none;
     border-radius: var(--border-radius);
     font-size: 17px;
     font-weight: 400;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
   }
 
   .btn:hover {
-    background-color: #0077ED;
+    opacity: 0.85;
   }
+  .btn:disabled {
+    background-color: #888;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
 
   #url-input {
     flex-grow: 1;
-    margin-right: 10px;
+    margin: 0 10px;
     padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -108,7 +145,7 @@
   #url-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(0, 125, 250, 0.6);
+    box-shadow: 0 0 0 4px var(--input-focus-shadow);
   }
 
   #main-display {
@@ -117,39 +154,49 @@
     border-radius: var(--border-radius);
     padding: 20px;
     position: relative;
-    box-shadow: 0 4px 6px var(--main-display-shadow);
+    box-shadow: 0 4px 6px var(--box-shadow-color);
+    transition: background-color 0.3s ease;
   }
+
+  #loading-indicator {
+    text-align: center;
+    font-size: 18px;
+    padding: 20px;
+    color: var(--label-text-color);
+    display: none; /* Initially hidden */
+  }
+
+  .ellipsis span {
+    opacity: 0;
+    animation: ellipsis-fade 1.4s infinite;
+  }
+  .ellipsis span:nth-child(1) { animation-delay: 0s; }
+  .ellipsis span:nth-child(2) { animation-delay: 0.2s; }
+  .ellipsis span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes ellipsis-fade {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
 
   #media-container {
     position: relative;
     width: 100%;
     height: 500px;
-    background-color: var(--input-background);
+    background-color: var(--media-container-background);
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
     border-radius: var(--border-radius);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  #media-container:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  .rounded-corners {
-    border-radius: 20px;
-    overflow: hidden;
+    transition: background-color 0.3s ease;
   }
 
   #tracking-canvas {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    margin: auto;
   }
 
   .controls {
@@ -168,10 +215,10 @@
   label {
     margin-bottom: 8px;
     font-size: 14px;
-    color: #86868b;
+    color: var(--label-text-color);
   }
 
-  select, input[type="range"] {
+  select, input[type="range"], input[type="color"] {
     width: 200px;
     padding: 8px;
     border: 1px solid var(--border-color);
@@ -181,11 +228,24 @@
     color: var(--text-color);
     transition: all 0.3s ease;
   }
+  
+  input[type="color"] {
+    padding: 4px; 
+    height: 40px; 
+  }
+  body.dark-mode input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  body.dark-mode input[type="color"]::-webkit-color-swatch {
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--border-radius) / 2);
+  }
 
-  select:focus, input[type="range"]:focus {
+
+  select:focus, input[type="range"]:focus, input[type="color"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(0, 125, 250, 0.6);
+    box-shadow: 0 0 0 4px var(--input-focus-shadow);
   }
 
   #custom-labels {
@@ -197,6 +257,22 @@
     align-items: center;
     margin-bottom: 10px;
   }
+  .label-item span {
+    margin: 0 10px;
+  }
+  .label-item button { 
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .label-item button:hover {
+    background-color: #c0392b;
+  }
+
 
   .color-picker {
     margin-right: 10px;
@@ -205,7 +281,23 @@
     width: 30px;
     height: 30px;
     cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 0;
   }
+  .color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  .color-picker::-webkit-color-swatch {
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+  }
+  .color-picker::-moz-color-swatch { 
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+  }
+
 
   @keyframes fadeIn {
     from { opacity: 0; }
@@ -215,30 +307,27 @@
   .fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
-
-  #dark-mode-toggle {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-  }
 </style>
 </head>
-<body>
+<body class="dark-mode">
   <header>
     <h1>Advanced Object Tracking Studio</h1>
-    <button id="dark-mode-toggle" class="btn">Toggle Dark Mode</button>
+    <button id="theme-toggle-btn" class="theme-toggle-btn">Toggle Light Mode</button>
   </header>
   
   <div class="container">
     <div class="input-area fade-in">
       <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
-      <button class="btn" onclick="document.getElementById('file-input').click()">Import Media</button>
+      <button class="btn" id="import-media-btn" onclick="document.getElementById('file-input').click()">Import Media</button>
       <input type="text" id="url-input" placeholder="Enter media URL">
       <button class="btn" id="track-btn">Track</button>
     </div>
     
     <div id="main-display">
-      <div id="media-container"></div>
+      <div id="loading-indicator" style="display: none;">Model Loaded!</div>
+      <div id="media-container">
+         <!-- Media will be loaded here -->
+      </div>
       <canvas id="tracking-canvas"></canvas>
     </div>
     
@@ -246,8 +335,8 @@
       <div class="control-group">
         <label for="model-select">Tracking Model:</label>
         <select id="model-select">
-          <option value="roboflow">Roboflow</option>
-          <option value="huggingface">Hugging Face</option>
+          <option value="roboflow">Roboflow (COCO-SSD)</option>
+          <!-- <option value="huggingface">Hugging Face</option> -->
         </select>
       </div>
       
@@ -279,7 +368,7 @@
       </div>
       
       <div class="control-group">
-        <label for="sensitivity">Tracking Sensitivity:</label>
+        <label for="sensitivity">Tracking Sensitivity (Not Implemented):</label>
         <input type="range" id="sensitivity" min="0" max="100" value="50">
       </div>
     </div>
@@ -293,7 +382,6 @@
     <div class="controls">
       <button class="btn" onclick="saveTrackedMedia()">Save Tracked Media</button>
       <button class="btn" onclick="exportData()">Export Data</button>
-      <button class="btn" id="toggle-rounded-corners">Toggle Rounded Corners</button>
     </div>
   </div>
 
@@ -305,40 +393,114 @@ let mediaElement;
 let trackingCanvas;
 let trackingContext;
 let customLabels = [];
+let isVideoTracking = false;
+let videoTrackingRequestID;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  model = await cocoSsd.load();
-  console.log('Model loaded');
+const trackBtn = document.getElementById('track-btn');
+const loadingIndicator = document.getElementById('loading-indicator');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+
+// Debounce function
+function debounce(func, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+// Theme toggling
+function updateThemeButtonText() {
+    if (document.body.classList.contains('dark-mode')) {
+        themeToggleBtn.textContent = 'Toggle Light Mode';
+    } else {
+        themeToggleBtn.textContent = 'Toggle Dark Mode';
+    }
+}
+
+function setOperatingSystemTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+    updateThemeButtonText(); // Update button text based on OS theme
+    // No explicit localStorage.setItem here, let user toggle to set preference
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('dark-mode');
+  if (document.body.classList.contains('dark-mode')) {
+    localStorage.setItem('theme', 'dark');
+  } else {
+    localStorage.setItem('theme', 'light');
+  }
+  updateThemeButtonText(); // Update button text after toggling
+  localStorage.setItem('themeOverriddenByUser', 'true'); // Mark that user has manually set theme
+}
+
+themeToggleBtn.addEventListener('click', toggleTheme);
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('theme');
+  const userHasOverridden = localStorage.getItem('themeOverriddenByUser') === 'true';
+
+  if (savedTheme) {
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode'); // Ensure it's not dark if saved is light
+    }
+    updateThemeButtonText();
+  } else if (!userHasOverridden) { // Only apply OS theme if user hasn't manually set one
+    setOperatingSystemTheme();
+  } else { // User has overridden but no specific theme saved (e.g. cleared storage), default to light
+    document.body.classList.remove('dark-mode');
+    updateThemeButtonText();
+  }
+  
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (localStorage.getItem('themeOverriddenByUser') !== 'true') { 
+        setOperatingSystemTheme();
+      }
+  });
+
+  async function initModel() {
+    trackBtn.disabled = true;
+    loadingIndicator.innerHTML = 'Loading Model <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
+    loadingIndicator.style.display = 'block';
+    console.log('Loading model...');
+    try {
+      model = await cocoSsd.load();
+      console.log('Model loaded');
+      trackBtn.disabled = false;
+      loadingIndicator.textContent = 'Model Loaded!'; // Indicate completion
+      setTimeout(() => { // Hide after a short delay
+          loadingIndicator.style.display = 'none';
+      }, 1000); 
+    } catch (error) {
+      console.error('Failed to load model:', error);
+      loadingIndicator.innerHTML = '<span style="color: red;">Error loading model. Please refresh.</span>';
+    }
+  }
+  initModel();
 
   trackingCanvas = document.getElementById('tracking-canvas');
   trackingContext = trackingCanvas.getContext('2d');
 
   document.getElementById('file-input').addEventListener('change', handleFileUpload);
-  document.getElementById('url-input').addEventListener('change', handleUrlInput);
-  document.getElementById('track-btn').addEventListener('click', startTracking);
+  document.getElementById('url-input').addEventListener('input', debounce(handleUrlInput, 500));
+  trackBtn.addEventListener('click', startTracking);
 
-  const darkModeToggle = document.getElementById('dark-mode-toggle');
-  darkModeToggle.addEventListener('click', toggleDarkMode);
-
-  const toggleRoundedCornersBtn = document.getElementById('toggle-rounded-corners');
-  toggleRoundedCornersBtn.addEventListener('click', toggleRoundedCorners);
-
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark-mode');
-  }
+  window.addEventListener('resize', debounce(resizeCanvasIfMediaExists, 250));
 });
 
-function toggleDarkMode() {
-  document.documentElement.classList.toggle('dark-mode');
-}
-
-function toggleRoundedCorners() {
-  const mediaContainer = document.getElementById('media-container');
-  mediaContainer.classList.toggle('rounded-corners');
-  if (mediaElement) {
-    mediaElement.classList.toggle('rounded-corners');
+function resizeCanvasIfMediaExists() {
+  if (mediaElement && (mediaElement.width > 0 || mediaElement.videoWidth > 0)) {
+    resizeCanvas();
   }
 }
+
 
 function handleFileUpload(event) {
   const file = event.target.files[0];
@@ -352,126 +514,173 @@ function handleFileUpload(event) {
 }
 
 function handleUrlInput(event) {
-  const url = event.target.value;
+  const url = event.target.value.trim();
   if (url) {
-    displayMedia(url, getMediaTypeFromUrl(url));
+    try {
+      new URL(url); 
+      displayMedia(url, getMediaTypeFromUrl(url));
+    } catch (e) {
+      console.warn('Invalid URL provided:', url);
+      // Optional: update UI to show "Invalid URL"
+    }
   }
 }
 
 function getMediaTypeFromUrl(url) {
-  if (url.match(/\.(jpeg|jpg|gif|png)$/i) != null) {
+  if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null) {
     return 'image';
-  } else if (url.match(/\.(mp4|webm|ogg)$/i) != null) {
+  } else if (url.match(/\.(mp4|webm|ogv|ogg)$/i) != null) {
     return 'video';
   } else {
+    console.warn('Could not determine media type from URL extension:', url);
     return 'unknown';
   }
 }
 
 function displayMedia(src, type) {
+  stopVideoTracking(); 
   const container = document.getElementById('media-container');
-  container.innerHTML = '';
-  
+  container.innerHTML = ''; 
+  if (trackingContext) trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
+
   if (type.startsWith('image')) {
     mediaElement = new Image();
   } else if (type.startsWith('video')) {
     mediaElement = document.createElement('video');
     mediaElement.controls = true;
-    mediaElement.autoplay = false;
+    mediaElement.autoplay = false; 
+    mediaElement.muted = true; 
+    mediaElement.loop = false;
   } else {
-    console.error('Unsupported media type');
+    console.error('Unsupported media type:', type);
+    container.innerHTML = '<p style="color: red; text-align: center;">Unsupported media type or invalid URL.</p>';
+    mediaElement = null;
     return;
   }
   
-  mediaElement.crossOrigin = "anonymous";
+  mediaElement.crossOrigin = "anonymous"; 
   mediaElement.src = src;
   mediaElement.style.maxWidth = '100%';
   mediaElement.style.maxHeight = '100%';
+  mediaElement.style.display = 'block'; 
+  mediaElement.style.margin = 'auto'; 
+
   container.appendChild(mediaElement);
   
-  if (container.classList.contains('rounded-corners')) {
-    mediaElement.classList.add('rounded-corners');
-  }
-
-  mediaElement.onload = mediaElement.onloadedmetadata = function() {
-    resizeCanvas();
+  const onMediaLoad = () => {
+    if ((mediaElement.naturalWidth > 0 || mediaElement.videoWidth > 0)) {
+       resizeCanvas();
+       if (mediaElement instanceof HTMLImageElement && model) {
+           startTracking(); 
+       }
+    } else {
+      setTimeout(onMediaLoad, 100); 
+    }
   };
 
-  if (type.startsWith('video')) {
-    mediaElement.addEventListener('play', startVideoTracking);
-    mediaElement.addEventListener('pause', stopVideoTracking);
+  if (mediaElement instanceof HTMLImageElement) {
+      mediaElement.onload = onMediaLoad;
+      mediaElement.onerror = () => {
+          console.error("Error loading image.");
+          container.innerHTML = '<p style="color: red; text-align: center;">Error loading image.</p>';
+      };
+  } else if (mediaElement instanceof HTMLVideoElement) {
+      mediaElement.onloadedmetadata = onMediaLoad;
+      mediaElement.addEventListener('play', () => { if (model) startVideoTrackingLoop(); });
+      mediaElement.addEventListener('pause', stopVideoTracking);
+      mediaElement.addEventListener('ended', stopVideoTracking);
+      mediaElement.onerror = () => {
+          console.error("Error loading video.");
+          container.innerHTML = '<p style="color: red; text-align: center;">Error loading video.</p>';
+      };
   }
-
-  setTimeout(resizeCanvas, 100);
 }
 
-let isVideoTracking = false;
-let videoTrackingInterval;
 
-function startVideoTracking() {
-  if (!isVideoTracking) {
-    isVideoTracking = true;
-    videoTrackingInterval = setInterval(trackVideoFrame, 1000 / 30); 
+function startVideoTrackingLoop() {
+  if (isVideoTracking || !mediaElement || mediaElement.paused || mediaElement.ended || !model) {
+    stopVideoTracking(); 
+    return;
   }
+  isVideoTracking = true;
+  async function trackLoop() {
+    if (!isVideoTracking || mediaElement.paused || mediaElement.ended) {
+      stopVideoTracking();
+      return;
+    }
+    const predictions = await model.detect(mediaElement);
+    drawPredictions(predictions);
+    videoTrackingRequestID = requestAnimationFrame(trackLoop);
+  }
+  trackLoop();
 }
 
 function stopVideoTracking() {
   if (isVideoTracking) {
     isVideoTracking = false;
-    clearInterval(videoTrackingInterval);
+    if (videoTrackingRequestID) {
+      cancelAnimationFrame(videoTrackingRequestID);
+      videoTrackingRequestID = null;
+    }
   }
-}
-
-async function trackVideoFrame() {
-  if (mediaElement.paused || mediaElement.ended) {
-    stopVideoTracking();
-    return;
-  }
-  const predictions = await model.detect(mediaElement);
-  drawPredictions(predictions);
 }
 
 async function startTracking() {
+  if (!model) {
+    alert('Model not loaded yet. Please wait.');
+    return;
+  }
   if (!mediaElement) {
-    alert('Please import media first');
+    alert('Please import or load media first.');
     return;
   }
 
   if (mediaElement instanceof HTMLVideoElement) {
     if (mediaElement.paused) {
-      mediaElement.play();
-    } else {
-      mediaElement.pause();
+      mediaElement.play().catch(e => console.error("Play error:", e)); 
     }
-  } else {
-    const predictions = await model.detect(mediaElement);
-    drawPredictions(predictions);
+  } else if (mediaElement instanceof HTMLImageElement) {
+    loadingIndicator.innerHTML = 'Processing Image <span class="ellipsis"><span>.</span><span>.</span><span>.</span></span>';
+    loadingIndicator.style.display = 'block';
+    try {
+        // Delay slightly to ensure UI update for loadingIndicator
+        await new Promise(resolve => setTimeout(resolve, 50)); 
+        const predictions = await model.detect(mediaElement);
+        drawPredictions(predictions);
+    } catch (error) {
+        console.error("Error during image detection:", error);
+        alert("Error processing image.");
+    } finally {
+        loadingIndicator.style.display = 'none';
+    }
   }
 }
 
 function resizeCanvas() {
-  const containerWidth = mediaElement.offsetWidth;
-  const containerHeight = mediaElement.offsetHeight;
-  const mediaAspectRatio = mediaElement.videoWidth ? mediaElement.videoWidth / mediaElement.videoHeight : mediaElement.width / mediaElement.height;
-  const containerAspectRatio = containerWidth / containerHeight;
-
-  let canvasWidth, canvasHeight;
-
-  if (mediaAspectRatio > containerAspectRatio) {
-    canvasWidth = containerWidth;
-    canvasHeight = containerWidth / mediaAspectRatio;
-  } else {
-    canvasHeight = containerHeight;
-    canvasWidth = containerHeight * mediaAspectRatio;
+  if (!mediaElement || !(mediaElement.offsetWidth && mediaElement.offsetHeight)) {
+    return;
   }
+  
+  trackingCanvas.width = mediaElement.offsetWidth;
+  trackingCanvas.height = mediaElement.offsetHeight;
 
-  trackingCanvas.width = canvasWidth;
-  trackingCanvas.height = canvasHeight;
-  trackingCanvas.style.width = `${canvasWidth}px`;
-  trackingCanvas.style.height = `${canvasHeight}px`;
+  const mediaRect = mediaElement.getBoundingClientRect();
+  const containerRect = document.getElementById('media-container').getBoundingClientRect();
+
+  trackingCanvas.style.left = `${mediaRect.left - containerRect.left}px`;
+  trackingCanvas.style.top = `${mediaRect.top - containerRect.top}px`;
+  trackingCanvas.style.width = `${mediaElement.offsetWidth}px`;
+  trackingCanvas.style.height = `${mediaElement.offsetHeight}px`;
+
+  if (trackingContext) {
+    trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
+  }
 }
 
+
 function drawPredictions(predictions) {
+  if (!trackingContext || !mediaElement) return;
+  
   trackingContext.clearRect(0, 0, trackingCanvas.width, trackingCanvas.height);
   
   const visualizationStyle = document.getElementById('visualization-select').value;
@@ -479,33 +688,29 @@ function drawPredictions(predictions) {
   const textSize = document.getElementById('text-size').value;
   const textBoxColor = document.getElementById('text-box-color').value;
   
-  const isImage = mediaElement instanceof HTMLImageElement;
-  const widthReductionFactor = isImage ? 0.7 : 1; // Reduce width by 30% for images
-  
-  const scaleX = trackingCanvas.width / (mediaElement.videoWidth || mediaElement.width);
-  const scaleY = trackingCanvas.height / (mediaElement.videoHeight || mediaElement.height);
+  const mediaIntrinsicWidth = mediaElement.naturalWidth || mediaElement.videoWidth;
+  const mediaIntrinsicHeight = mediaElement.naturalHeight || mediaElement.videoHeight;
+
+  if (!mediaIntrinsicWidth || !mediaIntrinsicHeight) return;
+
+  const scaleX = trackingCanvas.width / mediaIntrinsicWidth;
+  const scaleY = trackingCanvas.height / mediaIntrinsicHeight;
   
   predictions.forEach(prediction => {
-    let [x, y, width, height] = prediction.bbox;
+    let [px, py, pwidth, pheight] = prediction.bbox; 
     
-    // Scale the bounding box coordinates
-    x *= scaleX;
-    y *= scaleY;
-    width *= scaleX;
-    height *= scaleY;
-    
-    if (isImage) {
-      const centerX = x + width / 2;
-      width *= widthReductionFactor;
-      x = centerX - width / 2;
-    }
-    
+    let x = px * scaleX;
+    let y = py * scaleY;
+    let width = pwidth * scaleX;
+    let height = pheight * scaleY;
+        
     const label = prediction.class;
     const customLabel = customLabels.find(cl => cl.name.toLowerCase() === label.toLowerCase());
     
-    trackingContext.strokeStyle = customLabel ? customLabel.color : (document.documentElement.classList.contains('dark-mode') ? '#2997ff' : '#00FFFF');
+    const BBOX_COLOR = customLabel ? customLabel.color : (document.body.classList.contains('dark-mode') ? '#00AFFFFF' : '#00FFFF'); 
+    trackingContext.strokeStyle = BBOX_COLOR;
     trackingContext.lineWidth = parseInt(lineThickness);
-    trackingContext.fillStyle = customLabel ? customLabel.color : (document.documentElement.classList.contains('dark-mode') ? '#2997ff' : '#00FFFF');
+    trackingContext.fillStyle = BBOX_COLOR;
 
     switch(visualizationStyle) {
       case 'rectangle':
@@ -524,7 +729,7 @@ function drawPredictions(predictions) {
       case 'multi-point':
         drawMultiPointTracker(x, y, width, height);
         break;
-      case 'outline':
+      case 'outline': 
         drawObjectOutline(x, y, width, height);
         break;
       case 'skeleton':
@@ -533,23 +738,37 @@ function drawPredictions(predictions) {
     }
     
     trackingContext.font = `${textSize}px Arial`;
-    trackingContext.fillStyle = textBoxColor;
-    const textWidth = trackingContext.measureText(label).width;
-    trackingContext.fillRect(x, y - parseInt(textSize) - 4, textWidth + 10, parseInt(textSize) + 8);
-    trackingContext.fillStyle = 'black';
-    trackingContext.fillText(label, x + 5, y - 5);
+    trackingContext.fillStyle = textBoxColor; 
+    const textMetrics = trackingContext.measureText(label);
+    const textWidth = textMetrics.width;
+    const textHeight = parseInt(textSize); 
+    
+    let textX = x;
+    let textY = y - 5; 
+    let rectY = y - textHeight - 8;
+
+    if (rectY < 0) { 
+        rectY = y + 2;
+        textY = y + textHeight + 2;
+    }
+    
+    trackingContext.fillRect(textX, rectY, textWidth + 10, textHeight + 8);
+    
+    const r = parseInt(textBoxColor.slice(1, 3), 16);
+    const g = parseInt(textBoxColor.slice(3, 5), 16);
+    const b = parseInt(textBoxColor.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    trackingContext.fillStyle = brightness > 125 ? 'black' : 'white'; 
+    
+    trackingContext.fillText(label, textX + 5, textY);
   });
 }
 
 function drawMultiPointTracker(x, y, width, height) {
   const points = [
-    [x, y],
-    [x + width, y],
-    [x + width, y + height],
-    [x, y + height],
+    [x, y], [x + width, y], [x + width, y + height], [x, y + height],
     [x + width / 2, y + height / 2]
   ];
-  
   points.forEach(point => {
     trackingContext.beginPath();
     trackingContext.arc(point[0], point[1], 3, 0, 2 * Math.PI);
@@ -569,52 +788,30 @@ function drawObjectOutline(x, y, width, height) {
 
 function drawSkeletalMesh(x, y, width, height, label) {
   if (label.toLowerCase().includes('person')) {
-    const headSize = height * 0.15;
-    const bodyHeight = height * 0.5;
-    const shoulderWidth = width * 0.8;
-    const hipWidth = width * 0.7;
+    const headSize = Math.min(width, height) * 0.15;
+    const bodyHeightRatio = 0.5;
+    const shoulderWidthRatio = 0.8;
+    
     const centerX = x + width / 2;
-    
-    // Head
+    const topY = y;
+
     trackingContext.beginPath();
-    trackingContext.arc(centerX, y + headSize, headSize, 0, 2 * Math.PI);
+    trackingContext.arc(centerX, topY + headSize, headSize, 0, 2 * Math.PI);
     trackingContext.stroke();
     
-    // Spine
+    const spineTopY = topY + headSize * 2;
+    const spineBottomY = topY + headSize * 2 + height * bodyHeightRatio;
     trackingContext.beginPath();
-    trackingContext.moveTo(centerX, y + headSize * 2);
-    trackingContext.lineTo(centerX, y + headSize * 2 + bodyHeight);
+    trackingContext.moveTo(centerX, spineTopY);
+    trackingContext.lineTo(centerX, spineBottomY);
     trackingContext.stroke();
     
-    // Shoulders
+    const shoulderY = spineTopY + height * bodyHeightRatio * 0.1;
     trackingContext.beginPath();
-    trackingContext.moveTo(centerX - shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
-    trackingContext.lineTo(centerX + shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
+    trackingContext.moveTo(centerX - (width * shoulderWidthRatio / 2), shoulderY);
+    trackingContext.lineTo(centerX + (width * shoulderWidthRatio / 2), shoulderY);
     trackingContext.stroke();
-    
-    // Arms
-    trackingContext.beginPath();
-    trackingContext.moveTo(centerX - shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
-    trackingContext.lineTo(x, y + headSize * 2 + bodyHeight * 0.6);
-    trackingContext.moveTo(centerX + shoulderWidth / 2, y + headSize * 2 + bodyHeight * 0.1);
-    trackingContext.lineTo(x + width, y + headSize * 2 + bodyHeight * 0.6);
-    trackingContext.stroke();
-    
-    // Hips
-    trackingContext.beginPath();
-    trackingContext.moveTo(centerX - hipWidth / 2, y + headSize * 2 + bodyHeight);
-    trackingContext.lineTo(centerX + hipWidth / 2, y + headSize * 2 + bodyHeight);
-    trackingContext.stroke();
-    
-    // Legs
-    trackingContext.beginPath();
-    trackingContext.moveTo(centerX - hipWidth / 2, y + headSize * 2 + bodyHeight);
-    trackingContext.lineTo(x + width * 0.2, y + height);
-    trackingContext.moveTo(centerX + hipWidth / 2, y + headSize * 2 + bodyHeight);
-    trackingContext.lineTo(x + width * 0.8, y + height);
-    trackingContext.stroke();
-  } else {
-    // For non-human objects, keep the existing X shape
+  } else { 
     trackingContext.beginPath();
     trackingContext.moveTo(x, y);
     trackingContext.lineTo(x + width, y + height);
@@ -626,9 +823,9 @@ function drawSkeletalMesh(x, y, width, height, label) {
 
 function addCustomLabel() {
   const labelName = prompt('Enter label name:');
-  if (labelName) {
-    const color = '#' + Math.floor(Math.random() * 16777215).toString(16);
-    customLabels.push({ name: labelName, color: color });
+  if (labelName && labelName.trim() !== '') {
+    const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+    customLabels.push({ name: labelName.trim(), color: color });
     updateLabelList();
   }
 }
@@ -642,7 +839,7 @@ function updateLabelList() {
     labelItem.innerHTML = `
       <input type="color" class="color-picker" value="${label.color}" onchange="updateLabelColor(${index}, this.value)">
       <span>${label.name}</span>
-      <button onclick="removeLabel(${index})">Remove</button>
+      <button onclick="removeLabel(${index})" title="Remove label">X</button>
     `;
     labelList.appendChild(labelItem);
   });
@@ -650,34 +847,77 @@ function updateLabelList() {
 
 function updateLabelColor(index, color) {
   customLabels[index].color = color;
+  if (mediaElement instanceof HTMLImageElement && model) {
+    startTracking(); 
+  }
 }
 
 function removeLabel(index) {
   customLabels.splice(index, 1);
   updateLabelList();
+    if(mediaElement instanceof HTMLImageElement && model) {
+      startTracking(); 
+  }
 }
 
 function saveTrackedMedia() {
-  alert('Tracked media saved (simulated)');
+  if (!mediaElement || !trackingCanvas.width || !trackingCanvas.height) {
+    alert('No media or tracking data to save.');
+    return;
+  }
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = trackingCanvas.width;
+  tempCanvas.height = trackingCanvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(mediaElement, 0, 0, tempCanvas.width, tempCanvas.height);
+  tempCtx.drawImage(trackingCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+  const dataURL = tempCanvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.href = dataURL;
+  link.download = 'tracked-media.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  console.log('Tracked media saved (as PNG).');
 }
 
 function exportData() {
-  alert('Tracking data exported (simulated)');
+  if (!model || !mediaElement) { 
+    alert('No tracking data to export. Please track media first.');
+    return;
+  }
+  const exampleData = {
+    source: mediaElement.src,
+    message: "This is a placeholder for actual tracking data (e.g., bounding boxes, labels)."
+  };
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exampleData, null, 2));
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", "tracking_data.json");
+  document.body.appendChild(downloadAnchorNode); 
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+  console.log('Tracking data exported (simulated).');
 }
 
 document.getElementById('model-select').addEventListener('change', async (event) => {
   const selectedModel = event.target.value;
-  if (selectedModel === 'roboflow') {
-    console.log('Loading Roboflow model...');
-  } else if (selectedModel === 'huggingface') {
-    console.log('Loading Hugging Face model...');
-  }
+  console.log('Model selection changed to:', selectedModel);
 });
 
 document.getElementById('sensitivity').addEventListener('input', (event) => {
   const sensitivity = event.target.value;
-  console.log('Sensitivity changed:', sensitivity);
+  console.log('Sensitivity changed (not implemented):', sensitivity);
 });
+
+['visualization-select', 'line-thickness', 'text-size', 'text-box-color'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+        if (mediaElement instanceof HTMLImageElement && model) {
+            startTracking();
+        }
+    });
+});
+
 </script>
 
 </body></html>
